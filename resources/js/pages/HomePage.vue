@@ -10,11 +10,8 @@
 
             <div>
                 <form @submit.prevent="step1()">
-                    <label for="number_first_city">Numéro de la première ville à scrapper</label>
-                    <input type="number" v-model="formStep1.number_first_city" name="number_first_city" required>
-                    <br>
-                    <label for="counter_cities">Nombre de villes à scrapper</label>
-                    <input type="number" v-model="formStep1.counter_cities" name="counter_cities" required="">
+                    <label for="page">Numéro de la page à scrapper</label>
+                    <input type="number" v-model="formStep1.page" name="page" required>
                     <br>
                     <button>Lancer</button>
                 </form>
@@ -30,8 +27,7 @@ export default {
     data() {
         return {
             formStep1: {
-                number_first_city: null,
-                counter_cities: null   
+                page: null,
             }
         }
     },
