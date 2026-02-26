@@ -16,6 +16,14 @@
                     <button>Lancer</button>
                 </form>
             </div>
+
+            <br>
+            <div v-if="cities">
+                <span v-for="(city, index) in cities">
+                    <span v-if="index === cities.length - 1">et {{ city }}.</span>
+                    <span v-else>{{ city }}, </span>
+                </span>
+            </div>
         </section>
     </div>
 </template>
@@ -28,7 +36,8 @@ export default {
         return {
             formStep1: {
                 page: null,
-            }
+            },
+            cities: []
         }
     },
     methods: {
@@ -37,7 +46,8 @@ export default {
 
             axios.post('/step1', this.formStep1)
             .then((response) => {
-                console.log('succès : ', response.data)
+                console.log('succès : ', response.data.data)
+                this.cities = response.data.data
             })
             .catch((error) => {
                 console.log('erreur : ', error)

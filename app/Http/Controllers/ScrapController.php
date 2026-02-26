@@ -25,16 +25,17 @@ class ScrapController extends Controller
 
             $crawler = new Crawler($response->body());
 
-            $villes = $crawler->filter('table tr')->each(function ($row) {
+            $cities = $crawler->filter('table tr')->each(function ($row) {
                 $cols = $row->filter('td');
-                return $cols->count() >= 2 ? trim($cols->eq(1)->text()) : null; // pour ne pas prendre la ligner header avec le nom des colonnes
+                return $cols->count() >= 2 ? trim($cols->eq(1)->text()) : null;
+                // pour ne pas prendre la ligner header avec le nom des colonnes
             });
-            $villes = array_values(array_filter($villes));
+            $cities = array_values(array_filter($cities));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Réussite',
-                'data' => $villes
+                'data' => $cities
             ], 200);
 
         } catch (\Exception $e) {
