@@ -30,7 +30,7 @@ app.post("/scrape-maps", async (req, res) => {
     const page = await browser.newPage();
     const allCitiesResults = [];
 
-    const citiesToScrape = cities.slice(0, 2);
+    const citiesToScrape = cities.slice(0, 1);
 
     for (const cityName of citiesToScrape) {
       const query = `${niche} à ${cityName}`;
@@ -61,7 +61,31 @@ app.post("/scrape-maps", async (req, res) => {
           const websiteEl = [...document.querySelectorAll('a')].find(a => a.textContent.includes("Site Web"));
           const website = websiteEl ? websiteEl.href : null;
 
-          return { name, rating, website };
+          const addressEl = document.querySelector('.Io6YTe.fontBodyMedium.kR99db.fdkmkc');
+          let city = null;
+          let postalPrefix = null;
+          if(addressEl){
+            const addrText = addressEl.innerText.trim();
+            const match = addrText.match(/(\d{5})\s+([A-Za-zÀ-ÖØ-öø-ÿ\- ]+)/);
+            if(match){
+              postalPrefix = match[1].slice(0,2);
+              city = match[2].trim();
+            } else {
+              const parts = addrText.split(',');
+              if(parts.length>=2){
+                city = parts[parts.length-2].trim();
+                postalPrefix = parts[parts.length-2].trim().slice(0,2);
+              }
+            }
+          }
+
+          const reviewsEl = document.querySelector('span[aria-label*="avis"], span[aria-label*="review"]');
+          const reviews = reviewsEl ? parseInt(reviewsEl.getAttribute('aria-label').replace(/\D/g,'')) : null;
+
+          const phoneEl = [...document.querySelectorAll('div.Io6YTe')].find(el => el.innerText.match(/^(\+33|0)[0-9\s\.]{8,}/));
+          const phone = phoneEl ? phoneEl.innerText.replace(/\s/g,'') : null;
+
+          return { name, rating, website, reviews, city, postalPrefix, phone };
         });
 
         cityResults.push(companyData);
