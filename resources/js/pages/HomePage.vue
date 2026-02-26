@@ -25,6 +25,29 @@
                 </span>
             </div>
         </section>
+
+        <section id="step-2">
+            <h2>Etape 2</h2>
+            <p>Identifier la niche</p>
+
+            <div>
+                <form @submit.prevent="step2()">
+                    <label for="niche">Nom de la niche</label>
+                    <input type="text" v-model="formStep2.niche" name="niche" required>
+                    <br>
+                    <button>Lancer</button>
+                </form>
+            </div>
+
+            <br>
+            <div v-if="niche">
+                <p>Voulez-vous vraiment scrapper les {{ cities.length }} villes de la page {{ formStep1.page }} sur la niche {{ niche }} ?</p>
+            </div>
+        </section>
+
+        <section>
+            <button @click="step3()">Lancer le scrapping</button>
+        </section>
     </div>
 </template>
 
@@ -37,13 +60,15 @@ export default {
             formStep1: {
                 page: null,
             },
-            cities: []
+            cities: [],
+            formStep2: {
+                niche: ""
+            },
+            niche: ""
         }
     },
     methods: {
         step1() {
-            console.log('siiiii parti', this.formStep1)
-
             axios.post('/step1', this.formStep1)
             .then((response) => {
                 console.log('succès : ', response.data.data)
@@ -52,6 +77,19 @@ export default {
             .catch((error) => {
                 console.log('erreur : ', error)
             })
+        },
+        step2() {
+            axios.post('/step2', this.formStep2)
+            .then((response) => {
+                console.log('succès : ', response.data)
+                this.niche = response.data.data;
+            })
+            .catch((error) => {
+                console.log('erreur : ', error)
+            })
+        },
+        step3() {
+            // on scrap dans Google Maps 🥶
         }
     }
 };

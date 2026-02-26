@@ -46,4 +46,18 @@ class ScrapController extends Controller
             ], 500);
         }
     }
+
+    public function step2(Request $request) {
+
+        $validated = $request->validate([
+            'niche' => 'required|string'
+        ]);
+
+        $niche = $validated['niche'];
+
+        return response()->json([
+            'message' => 'Réussite',
+            'data' => $niche
+        ]);
+    }
 }
