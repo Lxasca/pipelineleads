@@ -60,4 +60,19 @@ class ScrapController extends Controller
             'data' => $niche
         ]);
     }
+
+    public function step3(Request $request)
+    {
+        $validated = $request->validate([
+            'cities' => 'required|array',
+            'niche' => 'required|string'
+        ]);
+
+        $response = Http::post('http://localhost:3001/scrape-maps', [
+            'cities' => $validated['cities'],
+            'niche' => $validated['niche']
+        ]);
+
+        return response()->json($response->json());
+    }
 }

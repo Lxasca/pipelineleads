@@ -89,7 +89,13 @@ export default {
             })
         },
         step3() {
-            // on scrap dans Google Maps 🥶
+            // on scrap Google Maps 🥶
+            axios.post('/step3', {
+                cities: this.cities,
+                niche: this.niche
+            }).then(res => {
+                console.log(res.data);
+            });
         }
     }
 };
