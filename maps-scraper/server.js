@@ -30,9 +30,7 @@ app.post("/scrape-maps", async (req, res) => {
     const page = await browser.newPage();
     const allCitiesResults = [];
 
-    const citiesToScrape = cities.slice(0, 1);
-
-    for (const cityName of citiesToScrape) {
+    for (const cityName of cities) {
       const query = `${niche} à ${cityName}`;
       console.log("Recherche :", query);
 
@@ -43,56 +41,59 @@ app.post("/scrape-maps", async (req, res) => {
       const resultElements = await page.$$('[role="article"]').catch(err => { console.error("Erreur $$:", err); return []; });
       const cityResults = [];
 
-      for (let i = 0; i < Math.min(1, resultElements.length); i++) {
-      try {
-        const resultElement = resultElements[i];
-        await resultElement.click().catch(err => console.error("Erreur click:", err));
+      for (let i = 0; i < Math.min(20, resultElements.length); i++) {
+        try {
+          const resultElement = resultElements[i];
+          await resultElement.click().catch(err => console.error("Erreur click:", err));
 
-        await page.waitForSelector('h1.DUwDvf.lfPIob, .fontHeadlineLarge', { timeout: 8000 });
-        await new Promise(r => setTimeout(r, 1500));
+          await page.waitForSelector('h1.DUwDvf.lfPIob, .fontHeadlineLarge', { timeout: 8000 });
+          await new Promise(r => setTimeout(r, 1500));
 
-        const companyData = await page.evaluate(() => {
-          const nameEl = document.querySelector('h1.DUwDvf.lfPIob') || document.querySelector('.fontHeadlineLarge');
-          const name = nameEl ? nameEl.innerText.trim() : "Nom non trouvé";
+          page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-          const ratingEl = document.querySelector('.F7nice span span[aria-hidden="true"]');
-          const rating = ratingEl ? ratingEl.innerText.trim() : null;
+          const companyData = await page.evaluate(() => {
+            const nameEl = document.querySelector('h1.DUwDvf.lfPIob') || document.querySelector('.fontHeadlineLarge');
+            const name = nameEl ? nameEl.innerText.trim() : "Nom non trouvé";
 
-          const websiteEl = [...document.querySelectorAll('a')].find(a => a.textContent.includes("Site Web"));
-          const website = websiteEl ? websiteEl.href : null;
+            const ratingEl = document.querySelector('.F7nice span span[aria-hidden="true"]');
+            const rating = ratingEl ? ratingEl.innerText.trim() : null;
 
-          const addressEl = document.querySelector('.Io6YTe.fontBodyMedium.kR99db.fdkmkc');
-          let city = null;
-          let postalPrefix = null;
-          if(addressEl){
-            const addrText = addressEl.innerText.trim();
-            const match = addrText.match(/(\d{5})\s+([A-Za-zÀ-ÖØ-öø-ÿ\- ]+)/);
-            if(match){
-              postalPrefix = match[1].slice(0,2);
-              city = match[2].trim();
-            } else {
-              const parts = addrText.split(',');
-              if(parts.length>=2){
-                city = parts[parts.length-2].trim();
-                postalPrefix = parts[parts.length-2].trim().slice(0,2);
+            const websiteEl = [...document.querySelectorAll('a')].find(a => a.textContent.includes("Site Web"));
+            const website = websiteEl ? websiteEl.href : null;
+
+            const addressEl = document.querySelector('.Io6YTe.fontBodyMedium.kR99db.fdkmkc');
+            let city = null;
+            let postalPrefix = null;
+            if(addressEl){
+              const addrText = addressEl.innerText.trim();
+              const match = addrText.match(/(\d{5})\s+([A-Za-zÀ-ÖØ-öø-ÿ\- ]+)/);
+              if(match){
+                postalPrefix = match[1].slice(0,2);
+                city = match[2].trim();
+              } else {
+                const parts = addrText.split(',');
+                if(parts.length>=2){
+                  city = parts[parts.length-2].trim();
+                  postalPrefix = parts[parts.length-2].trim().slice(0,2);
+                }
               }
             }
-          }
 
-          const reviewsEl = document.querySelector('span[aria-label*="avis"], span[aria-label*="review"]');
-          const reviews = reviewsEl ? parseInt(reviewsEl.getAttribute('aria-label').replace(/\D/g,'')) : null;
+            const reviewsEl = document.querySelector('.jANrlb span[aria-label*="avis"]') 
+            || document.querySelector('.F7nice span[aria-label*="avis"]');
+            const reviews = reviewsEl ? parseInt(reviewsEl.getAttribute('aria-label').match(/(\d+)\s*avis/i)?.[1]) : null;
 
-          const phoneEl = [...document.querySelectorAll('div.Io6YTe')].find(el => el.innerText.match(/^(\+33|0)[0-9\s\.]{8,}/));
-          const phone = phoneEl ? phoneEl.innerText.replace(/\s/g,'') : null;
+            const phoneEl = [...document.querySelectorAll('div.Io6YTe')].find(el => el.innerText.match(/^(\+33|0)[0-9\s\.]{8,}/));
+            const phone = phoneEl ? phoneEl.innerText.replace(/\s/g,'') : null;
 
-          return { name, rating, website, reviews, city, postalPrefix, phone };
-        });
+            return { name, rating, website, reviews, city, postalPrefix, phone };
+          });
 
-        cityResults.push(companyData);
-      } catch (err) {
-        console.error("Erreur sur un résultat :", err);
+          cityResults.push(companyData);
+        } catch (err) {
+          console.error("Erreur sur un résultat :", err);
+        }
       }
-    }
 
       allCitiesResults.push({ city: cityName, results: cityResults });
     }

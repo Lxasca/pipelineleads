@@ -88,19 +88,47 @@ export default {
                 console.log('erreur : ', error)
             })
         },
-        step3() {
-            console.log("Lancement step3 avec cities:", this.cities, "et niche:", this.niche);
+       async step3() {
+        console.log("Lancement step3 avec cities:", this.cities, "et niche:", this.niche);
+        
+        const allResults = [];
 
-            axios.post("http://localhost:3001/scrape-maps", {
-                cities: this.cities,
+        for (const city of this.cities.slice(0, 1)) {
+            try {
+            console.log("Scraping ville :", city);
+            const res = await axios.post("http://localhost:3001/scrape-maps", {
+                cities: [city],
                 niche: this.niche
-            })
-            .then(res => {
-                console.log("Réponse Node:", res.data);
-            })
-            .catch(err => {
-                console.error("Erreur Axios :", err.response?.data || err);
             });
+
+            const cityData = res.data.data[0];
+            allResults.push(cityData);
+            console.log(`✅ ${city} scrapée (${allResults.length}/${this.cities.length})`);
+
+            } catch (err) {
+                console.error(`❌ Erreur sur ${city} :`, err.response?.data || err);
+            }
+        }
+
+        const rows = [["Ville", "Nom", "Note", "Avis", "Téléphone", "Site Web", "Ville extraite", "Code postal"]];
+        allResults.forEach(cityObj => {
+            cityObj.results.forEach(r => {
+            rows.push([
+                cityObj.city,
+                r.name || "", r.rating || "", r.reviews || "",
+                r.phone || "", r.website || "", r.city || "", r.postalPrefix || ""
+            ]);
+            });
+        });
+
+        const csvContent = rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `leads_${this.niche}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
         }
     }
 };
