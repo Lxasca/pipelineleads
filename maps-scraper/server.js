@@ -58,8 +58,9 @@ app.post("/scrape-maps", async (req, res) => {
             const ratingEl = document.querySelector('.F7nice span span[aria-hidden="true"]');
             const rating = ratingEl ? ratingEl.innerText.trim() : null;
 
-            const websiteEl = [...document.querySelectorAll('a')].find(a => a.textContent.includes("Site Web"));
-            const website = websiteEl ? websiteEl.href : null;
+            const websiteEl = document.querySelector('a.CsEnBe[aria-label*="Website"]') 
+            || document.querySelector('a.CsEnBe[aria-label*="Site"]');
+            const website = websiteEl ? websiteEl.getAttribute('aria-label').replace(/^(Website|Site Web)\s*:\s*/i, '').trim() : null;
 
             const addressEl = document.querySelector('.Io6YTe.fontBodyMedium.kR99db.fdkmkc');
             let city = null;
@@ -79,8 +80,7 @@ app.post("/scrape-maps", async (req, res) => {
               }
             }
 
-            const reviewsEl = document.querySelector('.jANrlb span[aria-label*="avis"]') 
-            || document.querySelector('.F7nice span[aria-label*="avis"]');
+            const reviewsEl = document.querySelector('.F7nice span[aria-label*="avis"]');
             const reviews = reviewsEl ? parseInt(reviewsEl.getAttribute('aria-label').match(/(\d+)\s*avis/i)?.[1]) : null;
 
             const phoneEl = [...document.querySelectorAll('div.Io6YTe')].find(el => el.innerText.match(/^(\+33|0)[0-9\s\.]{8,}/));
