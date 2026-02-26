@@ -89,12 +89,17 @@ export default {
             })
         },
         step3() {
-            // on scrap Google Maps 🥶
-            axios.post('/step3', {
+            console.log("Lancement step3 avec cities:", this.cities, "et niche:", this.niche);
+
+            axios.post("http://localhost:3001/scrape-maps", {
                 cities: this.cities,
                 niche: this.niche
-            }).then(res => {
-                console.log(res.data);
+            })
+            .then(res => {
+                console.log("Réponse Node:", res.data);
+            })
+            .catch(err => {
+                console.error("Erreur Axios :", err.response?.data || err);
             });
         }
     }
