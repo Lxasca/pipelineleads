@@ -83,6 +83,7 @@ export default {
             .then((response) => {
                 console.log('succès : ', response.data)
                 this.niche = response.data.data;
+                console.log("data reçue:", JSON.stringify(response.data));
             })
             .catch((error) => {
                 console.log('erreur : ', error)
@@ -110,13 +111,13 @@ export default {
             }
         }
 
-        const rows = [["Ville", "Nom", "Note", "Avis", "Téléphone", "Site Web", "Ville extraite", "Code postal"]];
+        const rows = [["Ville", "Nom", "Note", "Site Web"]];
         allResults.forEach(cityObj => {
             cityObj.results.forEach(r => {
             rows.push([
                 cityObj.city,
-                r.name || "", r.rating || "", r.reviews || "",
-                r.phone || "", r.website || "", r.city || "", r.postalPrefix || ""
+                r.name || "", r.rating || "", 
+                r.website || ""
             ]);
             });
         });

@@ -26,7 +26,7 @@ app.post("/scrape-maps", async (req, res) => {
   }
 
   try {
-    const browser = await puppeteer.launch({ headless: false, slowMo: 50, defaultViewport: null });
+    const browser = await puppeteer.launch({ headless: true, defaultViewport: null });
     const page = await browser.newPage();
     const allCitiesResults = [];
 
@@ -38,18 +38,49 @@ app.post("/scrape-maps", async (req, res) => {
       await page.waitForSelector('[role="feed"]').catch(err => console.error("Selector feed non trouvé:", err));
       await new Promise(r => setTimeout(r, 3000));
 
+      /**const feed = await page.$('[role="feed"]');
+      let previousCount = 0;
+      let sameCountRetries = 0;
+
+      while (true) {
+        await page.evaluate(el => el.scrollTop += 3000, feed);
+
+        await new Promise(r => setTimeout(r, 3000));
+        
+        const currentCount = await page.$$eval('[role="article"]', els => els.length);
+        console.log(`Articles chargés : ${currentCount}`);
+        
+        const endReached = await page.evaluate(() => {
+          const feed = document.querySelector('[role="feed"]');
+          return feed ? feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 10 : false;
+        });
+
+        if (currentCount === previousCount) {
+          sameCountRetries++;
+          if (sameCountRetries >= 10) break; // 5 tentatives sans nouveau résultat = vraiment fini
+        } else {
+          sameCountRetries = 0;
+        }
+
+        if (endReached && currentCount === previousCount) break;
+        
+        previousCount = currentCount;
+      }
+
+      console.log(`Total articles trouvés : ${previousCount}`);**/
+      
       const resultElements = await page.$$('[role="article"]').catch(err => { console.error("Erreur $$:", err); return []; });
       const cityResults = [];
 
-      for (let i = 0; i < Math.min(20, resultElements.length); i++) {
+      for (let i = 0; i < Math.min(2, resultElements.length); i++) { // Math.min(20, resultElements.length) //resultElements.length
         try {
           const resultElement = resultElements[i];
+          console.log(`[${cityName}] ${i + 1}/${resultElements.length} — scraping...`);
           await resultElement.click().catch(err => console.error("Erreur click:", err));
 
-          await page.waitForSelector('h1.DUwDvf.lfPIob, .fontHeadlineLarge', { timeout: 8000 });
-          await new Promise(r => setTimeout(r, 1500));
-
-          page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+          await page.waitForSelector('h1.DUwDvf.lfPIob, .fontHeadlineLarge', { timeout: 2000 });
+          //await page.waitForSelector('span[role="img"][aria-label*="reviews"]', { timeout: 2000 }).catch(() => {});
+          await new Promise(r => setTimeout(r, 2000));
 
           const companyData = await page.evaluate(() => {
             const nameEl = document.querySelector('h1.DUwDvf.lfPIob') || document.querySelector('.fontHeadlineLarge');
@@ -62,34 +93,11 @@ app.post("/scrape-maps", async (req, res) => {
             || document.querySelector('a.CsEnBe[aria-label*="Site"]');
             const website = websiteEl ? websiteEl.getAttribute('aria-label').replace(/^(Website|Site Web)\s*:\s*/i, '').trim() : null;
 
-            const addressEl = document.querySelector('.Io6YTe.fontBodyMedium.kR99db.fdkmkc');
-            let city = null;
-            let postalPrefix = null;
-            if(addressEl){
-              const addrText = addressEl.innerText.trim();
-              const match = addrText.match(/(\d{5})\s+([A-Za-zÀ-ÖØ-öø-ÿ\- ]+)/);
-              if(match){
-                postalPrefix = match[1].slice(0,2);
-                city = match[2].trim();
-              } else {
-                const parts = addrText.split(',');
-                if(parts.length>=2){
-                  city = parts[parts.length-2].trim();
-                  postalPrefix = parts[parts.length-2].trim().slice(0,2);
-                }
-              }
-            }
-
-            const reviewsEl = document.querySelector('.F7nice span[aria-label*="avis"]');
-            const reviews = reviewsEl ? parseInt(reviewsEl.getAttribute('aria-label').match(/(\d+)\s*avis/i)?.[1]) : null;
-
-            const phoneEl = [...document.querySelectorAll('div.Io6YTe')].find(el => el.innerText.match(/^(\+33|0)[0-9\s\.]{8,}/));
-            const phone = phoneEl ? phoneEl.innerText.replace(/\s/g,'') : null;
-
-            return { name, rating, website, reviews, city, postalPrefix, phone };
+            return { name, rating, website };
           });
 
           cityResults.push(companyData);
+          console.log(`[${cityName}] ✅ ${i + 1}/${resultElements.length} — ${companyData.name}`);
         } catch (err) {
           console.error("Erreur sur un résultat :", err);
         }
@@ -102,7 +110,7 @@ app.post("/scrape-maps", async (req, res) => {
     res.json({ success: true, data: allCitiesResults });
 
   } catch (err) {
-    console.error("Erreur générale scraping :", err);
+    console.log(`[${cityName}] ❌ ${i + 1}/${resultElements.length} — erreur : ${err.message}`);
     res.status(500).json({ success: false, message: "Erreur serveur", error: err.toString() });
   }
 });
