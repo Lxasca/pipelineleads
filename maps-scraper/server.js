@@ -38,7 +38,7 @@ app.post("/scrape-maps", async (req, res) => {
       await page.waitForSelector('[role="feed"]').catch(err => console.error("Selector feed non trouvé:", err));
       await new Promise(r => setTimeout(r, 3000));
 
-      /**const feed = await page.$('[role="feed"]');
+      const feed = await page.$('[role="feed"]');
       let previousCount = 0;
       let sameCountRetries = 0;
 
@@ -67,12 +67,12 @@ app.post("/scrape-maps", async (req, res) => {
         previousCount = currentCount;
       }
 
-      console.log(`Total articles trouvés : ${previousCount}`);**/
+      console.log(`Total articles trouvés : ${previousCount}`);
       
       const resultElements = await page.$$('[role="article"]').catch(err => { console.error("Erreur $$:", err); return []; });
       const cityResults = [];
 
-      for (let i = 0; i < Math.min(2, resultElements.length); i++) { // Math.min(20, resultElements.length) //resultElements.length
+      for (let i = 0; i < resultElements.length; i++) { // Math.min(20, resultElements.length) //resultElements.length
         try {
           const resultElement = resultElements[i];
           console.log(`[${cityName}] ${i + 1}/${resultElements.length} — scraping...`);

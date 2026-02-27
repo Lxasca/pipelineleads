@@ -94,7 +94,7 @@ export default {
         
         const allResults = [];
 
-        for (const city of this.cities.slice(0, 1)) {
+        for (const city of this.cities) { // slice(0, 1)
             try {
             console.log("Scraping ville :", city);
             const res = await axios.post("http://localhost:3001/scrape-maps", {
