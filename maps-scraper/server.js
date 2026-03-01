@@ -79,7 +79,7 @@ app.post("/scrape-maps", async (req, res) => {
           await resultElement.click().catch(err => console.error("Erreur click:", err));
 
           await page.waitForSelector('h1.DUwDvf.lfPIob, .fontHeadlineLarge', { timeout: 2000 });
-          //await page.waitForSelector('span[role="img"][aria-label*="reviews"]', { timeout: 2000 }).catch(() => {});
+          //await page.waitForSelector('span[frole="img"][aria-label*="reviews"]', { timeout: 2000 }).catch(() => {});
           await new Promise(r => setTimeout(r, 2000));
 
           const companyData = await page.evaluate(() => {
@@ -127,8 +127,6 @@ app.post("/scrape-maps", async (req, res) => {
           } else {
             console.log(`[${cityName}] ⚠️ doublon ignoré — ${companyData.name}`);
           }
-
-          console.log(`[${cityName}] ✅ ${i + 1}/${resultElements.length} — ${companyData.name}`);
         } catch (err) {
           console.error("Erreur sur un résultat :", err);
         }
@@ -157,14 +155,6 @@ async function findEmailsOnWebsite(page, url) {
     'mailer-daemon', 'webmaster', 'admin@', 'test@',
     'pagesjaunes', 'local.fr', 'domaine.', 'votremail'
   ];
-  
-  const isValidEmail = (email) => {
-    if (!email || email.length > 100) return false;
-    if (!/\.[a-z]{2,6}$/i.test(email)) return false;
-    if (/\.(png|jpg|jpeg|gif|webp|svg|pdf|css|js|php)$/i.test(email)) return false;
-    if (blacklist.some(b => email.toLowerCase().includes(b))) return false;
-    return true;
-  };
 
   const pagesToCheck = [
     url,
@@ -185,7 +175,7 @@ async function findEmailsOnWebsite(page, url) {
       const content = await page.evaluate(() => document.body.innerText + ' ' + document.body.innerHTML);
       
       const matches = content.match(emailRegex) || [];
-      matches.filter(isValidEmail).forEach(e => allEmails.add(e.toLowerCase()));
+      matches.filter(isMailValide).forEach(e => allEmails.add(e.toLowerCase()));
       
       if (allEmails.size > 0) {
         console.log(`  ↳ ${allEmails.size} mail(s) trouvé(s) sur ${pageUrl}`);
@@ -196,4 +186,49 @@ async function findEmailsOnWebsite(page, url) {
   }
 
   return allEmails.size > 0 ? [...allEmails].join(', ') : null;
+}
+
+
+function isMailValide(email) {
+  if (!email || typeof email !== 'string') return false;
+  
+  // Décode les caractères URL encodés
+  try {
+    email = decodeURIComponent(email);
+    email = email.replace(/\s+/g, '');
+  } catch(e) {}
+  
+  // Format de base
+  if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,6}$/i.test(email)) return false;
+  
+  // Extensions fichiers
+  if (/\.(png|jpg|jpeg|gif|webp|svg|pdf|doc|docx|zip|css|js|php)$/i.test(email)) return false;
+  
+  // Domaines blacklistés
+  const blacklistedDomains = [
+    'exemple.fr', 'exemple.com', 'example.com', 'example.fr',
+    'domaine.com', 'domaine.fr', 'votre-domaine.fr',
+    'webador.fr', 'solocal.com', 'pagesjaunes.fr',
+    'wixpress.com', 'sentry.io', 'sentry-next.wixpress.com',
+    'local.fr', 'monsite.fr', 'votresite.fr',
+  ];
+  const domain = email.split('@')[1].toLowerCase();
+  if (blacklistedDomains.includes(domain)) return false;
+  
+  // Préfixes suspects
+  const prefixesInvalides = [
+    /^vous@/i, /^utilisateur@/i, /^user@/i, /^test@/i,
+    /^noreply@/i, /^no-reply@/i, /^donotreply@/i,
+    /^postmaster@/i, /^mailer-daemon@/i, /^admin@/i,
+    /^webmaster@/i, /^support@webador/i,
+  ];
+  if (prefixesInvalides.some(p => p.test(email))) return false;
+  
+  // Caractères bizarres non résolus
+  if (/%[0-9a-f]{2}/i.test(email)) return false;
+  
+  // Espaces
+  if (/\s/.test(email)) return false;
+  
+  return true;
 }
