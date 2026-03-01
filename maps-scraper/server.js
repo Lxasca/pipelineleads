@@ -109,6 +109,15 @@ app.post("/scrape-maps", async (req, res) => {
           );
           if (!isDuplicate) {
             cityResults.push(companyData);
+
+            
+            if (companyData.website) { // + on cherche les mails sur le site
+              console.log(`[${cityName}] 🔍 Recherche mails sur ${companyData.website}...`);
+              const emails = await findEmailsOnWebsite(page, companyData.website);
+              companyData.emails = emails;
+              console.log(`[${cityName}] 📧 ${emails || 'aucun mail trouvé'}`);
+            }
+
             cityResults.sort((a, b) => { //+ on met systématiquement les leads sans site web en bas
               if (a.website && !b.website) return -1;
               if (!a.website && b.website) return 1;
@@ -138,3 +147,53 @@ app.post("/scrape-maps", async (req, res) => {
 });
 
 app.listen(3001, () => console.log("Scraper Maps lancé sur port 3001"));
+
+async function findEmailsOnWebsite(page, url) {
+  const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+  
+  const blacklist = [
+    'sentry', 'wixpress', 'example', 'exemple', 'solocal',
+    'webador', 'noreply', 'no-reply', 'donotreply', 'postmaster',
+    'mailer-daemon', 'webmaster', 'admin@', 'test@',
+    'pagesjaunes', 'local.fr', 'domaine.', 'votremail'
+  ];
+  
+  const isValidEmail = (email) => {
+    if (!email || email.length > 100) return false;
+    if (!/\.[a-z]{2,6}$/i.test(email)) return false;
+    if (/\.(png|jpg|jpeg|gif|webp|svg|pdf|css|js|php)$/i.test(email)) return false;
+    if (blacklist.some(b => email.toLowerCase().includes(b))) return false;
+    return true;
+  };
+
+  const pagesToCheck = [
+    url,
+    url + '/contact',
+    url + '/nous-contacter',
+    url + '/contact.html',
+    url + '/mentions-legales',
+    url + '/mentions-légales',
+    url + '/a-propos',
+  ];
+
+  const allEmails = new Set();
+
+  for (const pageUrl of pagesToCheck) {
+    try {
+      await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 8000 });
+      
+      const content = await page.evaluate(() => document.body.innerText + ' ' + document.body.innerHTML);
+      
+      const matches = content.match(emailRegex) || [];
+      matches.filter(isValidEmail).forEach(e => allEmails.add(e.toLowerCase()));
+      
+      if (allEmails.size > 0) {
+        console.log(`  ↳ ${allEmails.size} mail(s) trouvé(s) sur ${pageUrl}`);
+      }
+    } catch(e) {
+      continue;
+    }
+  }
+
+  return allEmails.size > 0 ? [...allEmails].join(', ') : null;
+}
