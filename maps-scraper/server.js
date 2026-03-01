@@ -96,13 +96,28 @@ app.post("/scrape-maps", async (req, res) => {
             return { name, rating, website };
           });
 
-          // On met systématiquement les leads sans site web en bas
-          cityResults.push(companyData);
-          cityResults.sort((a, b) => {
-            if (a.website && !b.website) return -1;
-            if (!a.website && b.website) return 1;
-            return 0;
-          });
+          // On prend pas les sites web qui sont enfait des lieux vers RS
+          const reseauxSociaux = ['facebook', 'instagram', 'linkedin', 'twitter', 'tiktok', 'youtube', 'pinterest'];
+          if (companyData.website && reseauxSociaux.some(r => companyData.website.toLowerCase().includes(r))) {
+            companyData.website = null;
+          }
+
+          // On ignore les doublons
+          const isDuplicate = cityResults.some(r => 
+            r.name === companyData.name || 
+            (r.website && companyData.website && r.website === companyData.website)
+          );
+          if (!isDuplicate) {
+            cityResults.push(companyData);
+            cityResults.sort((a, b) => { //+ on met systématiquement les leads sans site web en bas
+              if (a.website && !b.website) return -1;
+              if (!a.website && b.website) return 1;
+              return 0;
+            });
+            console.log(`[${cityName}] ✅ ${i + 1}/${resultElements.length} — ${companyData.name}`);
+          } else {
+            console.log(`[${cityName}] ⚠️ doublon ignoré — ${companyData.name}`);
+          }
 
           console.log(`[${cityName}] ✅ ${i + 1}/${resultElements.length} — ${companyData.name}`);
         } catch (err) {
