@@ -36,7 +36,7 @@ app.post("/scrape-maps", async (req, res) => {
 
       await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, { waitUntil: "networkidle2" }).catch(err => console.error("Erreur goto:", err));
       await page.waitForSelector('[role="feed"]').catch(err => console.error("Selector feed non trouvé:", err));
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise(r => setTimeout(r, 5000));
 
       const feed = await page.$('[role="feed"]');
       let previousCount = 0;
@@ -96,7 +96,14 @@ app.post("/scrape-maps", async (req, res) => {
             return { name, rating, website };
           });
 
+          // On met systématiquement les leads sans site web en bas
           cityResults.push(companyData);
+          cityResults.sort((a, b) => {
+            if (a.website && !b.website) return -1;
+            if (!a.website && b.website) return 1;
+            return 0;
+          });
+
           console.log(`[${cityName}] ✅ ${i + 1}/${resultElements.length} — ${companyData.name}`);
         } catch (err) {
           console.error("Erreur sur un résultat :", err);

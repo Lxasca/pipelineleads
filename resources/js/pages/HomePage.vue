@@ -1,6 +1,7 @@
 <template>
+    <router-link :to="'/demo'">Demo</router-link>
     <div>
-        <h1>Pipeline</h1>
+        <h1>Pipeline Leadgen</h1>
 
         <section id="step-1">
             <h2>Etape 1</h2>
@@ -94,7 +95,7 @@ export default {
         
         const allResults = [];
 
-        for (const city of this.cities) { // slice(0, 1)
+        for (const city of this.cities.slice(9, 51)) { // slice(0, 1)
             try {
             console.log("Scraping ville :", city);
             const res = await axios.post("http://localhost:3001/scrape-maps", {
