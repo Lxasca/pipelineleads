@@ -4,42 +4,44 @@
 
     <!-- ÉTAPE 1 -->
     <section v-if="currentStep === 1">
-      <h2>Voulez-vous scraper ... 👇🏼</h2>
+      <h2>Qu'est-ce qu'on scrappe ? 👇🏼</h2>
       <div class="buttons">
         <button @click="pageMode = 'single'" :class="{ active: pageMode === 'single' }">Une page</button>
         <button @click="pageMode = 'multiple'" :class="{ active: pageMode === 'multiple' }">Plusieurs pages</button>
       </div>
       <div v-if="pageMode === 'single'" class="inputs">
-        <label>Numéro de la page</label>
         <input type="number" v-model="pageStart" min="1" />
       </div>
-      <div v-if="pageMode === 'multiple'" class="inputs">
+      <div v-if="pageMode === 'multiple'" class="inputs" style="margin-left: 15px;">
         <label>De</label>
         <input type="number" v-model="pageStart" min="1" />
         <label>à</label>
         <input type="number" v-model="pageEnd" min="1" />
       </div>
-      <button v-if="pageMode" @click="goToStep2()">Continuer</button>
+      
+      <button v-if="pageMode" @click="goToStep2()" class="continuer">Continuer</button>
     </section>
 
     <!-- ÉTAPE 2 -->
     <section v-if="currentStep === 2">
-      <h2>Depuis quelle ville veux-tu démarrer ?</h2>
-      <div class="inputs">
-        <label>Ville de départ (optionnel)</label>
-        <input type="text" v-model="startCity" placeholder="Ex: Lyon" />
-      </div>
-      <div class="buttons">
+      <h2>On démarre où ? 👇🏼</h2>
+      
+      <div class="buttons" style="display: flex;align-items: center;">
         <button @click="startCity = ''; goToStep3()">Depuis le début</button>
-        <button @click="goToStep3()" :disabled="!startCity">Depuis {{ startCity || '...' }}</button>
+
+        <div class="inputs" style="margin-top: 0px;">
+            <label for="">ou</label>
+            <input type="text" v-model="startCity" placeholder="Ex: Lyon" />
+
+            <button @click="goToStep3()" :disabled="!startCity">Depuis {{ startCity || '...' }}</button>
+        </div>
       </div>
     </section>
 
     <!-- ÉTAPE 3 -->
     <section v-if="currentStep === 3">
-      <h2>Quelle est ta niche ?</h2>
+      <h2>Quelle est la cible ? 👇🏼</h2>
       <div class="inputs">
-        <label>Niche</label>
         <input type="text" v-model="niche" placeholder="Ex: Agence de rénovation" />
       </div>
       <div class="buttons">
@@ -127,10 +129,11 @@ export default {
     },
 
     stopScraping() {
-    if (this.eventSource) {
-        this.eventSource.close();
-    }
-    this.generateCSV(this.allResults);
+        if (this.eventSource) {
+            this.eventSource.close();
+        }
+        this.generateCSV(this.allResults);
+        this.currentStep = 1;
     },
 
     generateCSV(allResults) {
@@ -204,6 +207,7 @@ body {
 h2 {
     font-weight: normal;
     font-size: 20px;
+    margin-left: 15px;
 }
 button {
     padding: 12.5px 30px;
@@ -213,7 +217,8 @@ button {
     border: solid 1px var(--main-color);
     font-size: 13.5px;
 
-    margin-right: 25px;
+    margin-right: 15px;
+    margin-left: 15px;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
