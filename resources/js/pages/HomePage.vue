@@ -51,9 +51,11 @@
 
     <!-- ÉTAPE 4 -->
     <section v-if="currentStep === 4">
-        <h2>Scraping en cours...</h2>
-        <p class="live-city">📍 {{ liveCity || '...' }}</p>
-        <p class="live-company">🏢 {{ liveCompany || '...' }}</p>
+        <h2>Scraping en cours 👇🏼</h2>
+        <div style="margin-left: 15px;">
+            <p class="live-city">📍 {{ liveCity || '...' }}</p>
+            <p class="live-company">🏢 {{ liveCompany || '...' }}</p>
+        </div>
         <div class="buttons">
             <button @click="pauseScraping()">{{ scrapingActive ? 'Pause' : 'Reprendre' }}</button>
             <button @click="stopScraping()">Arrêter et télécharger</button>
@@ -81,6 +83,7 @@ export default {
       scrapingActive: true,
       eventSource: null,
       allResults: [],
+      currentCityIndex: 0,
     }
   },
   methods: {
@@ -125,7 +128,50 @@ export default {
     },
 
     pauseScraping() {
-    this.scrapingActive = !this.scrapingActive;
+        if (this.scrapingActive) {
+            this.eventSource.close();
+            this.scrapingActive = false;
+        } else {
+            this.scrapingActive = true;
+            this.resumeScraping();
+        }
+    },
+
+    resumeScraping() {
+        const remainingCities = this.cities.slice(this.currentCityIndex);
+        
+        const params = new URLSearchParams({
+            cities: JSON.stringify(remainingCities),
+            niche: this.niche
+        });
+
+        this.eventSource = new EventSource(`http://localhost:3001/scrape-maps?${params}`);
+
+        this.eventSource.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+
+            if (data.type === 'city') {
+            this.liveCity = data.city;
+            this.liveCompany = '';
+            this.currentCityIndex = this.cities.findIndex(c => c === data.city);
+            }
+
+            if (data.type === 'company') {
+            this.liveCompany = `${data.company} (${data.index}/${data.total})`;
+            }
+
+            if (data.type === 'done') {
+            this.eventSource.close();
+            this.allResults.push(...data.data);
+            this.generateCSV(this.allResults);
+            this.currentStep = 1;
+            }
+
+            if (data.type === 'error') {
+            this.eventSource.close();
+            console.error('Erreur scraping :', data.message);
+            }
+        };
     },
 
     stopScraping() {
@@ -137,57 +183,60 @@ export default {
     },
 
     generateCSV(allResults) {
-    const rows = [["Ville", "Nom", "Note", "Site Web", "Email"]];
-    allResults.forEach(cityObj => {
-        cityObj.results.forEach(r => {
-        rows.push([cityObj.city, r.name || "", r.rating || "", r.website || "", r.emails || ""]);
+        const rows = [["Ville", "Nom", "Note", "Site Web", "Email"]];
+        allResults.forEach(cityObj => {
+            cityObj.results.forEach(r => {
+            rows.push([cityObj.city, r.name || "", r.rating || "", r.website || "", r.emails || ""]);
+            });
         });
-    });
-    const csvContent = rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `leads_${this.niche}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+        const csvContent = rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `leads_${this.niche}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
     },
 
     async step3() {
-    this.allResults = [];
-    this.scrapingActive = true;
+        this.allResults = [];
+        this.scrapingActive = true;
+        this.currentCityIndex = 0;
 
-    const params = new URLSearchParams({
-        cities: JSON.stringify(this.cities),
-        niche: this.niche
-    });
+        const params = new URLSearchParams({
+            cities: JSON.stringify(this.cities),
+            niche: this.niche
+        });
 
-    this.eventSource = new EventSource(`http://localhost:3001/scrape-maps?${params}`);
+        this.eventSource = new EventSource(`http://localhost:3001/scrape-maps?${params}`);
 
-    this.eventSource.onmessage = (e) => {
-        const data = JSON.parse(e.data);
+        this.eventSource.onmessage = (e) => {
+            const data = JSON.parse(e.data);
 
-        if (data.type === 'city') {
-        this.liveCity = data.city;
-        this.liveCompany = '';
-        }
+            if (data.type === 'city') {
+            this.liveCity = data.city;
+            this.liveCompany = '';
+            this.currentCityIndex = this.cities.findIndex(c => c === data.city);
+            }
 
-        if (data.type === 'company') {
-        this.liveCompany = `${data.company} (${data.index}/${data.total})`;
-        }
+            if (data.type === 'company') {
+            this.liveCompany = `${data.company} (${data.index}/${data.total})`;
+            }
 
-        if (data.type === 'done') {
-        this.eventSource.close();
-        this.allResults.push(...data.data);
-        this.generateCSV(this.allResults);
-        }
+            if (data.type === 'done') {
+            this.eventSource.close();
+            this.allResults.push(...data.data);
+            this.generateCSV(this.allResults);
+            this.currentStep = 1;
+            }
 
-        if (data.type === 'error') {
-        this.eventSource.close();
-        console.error('Erreur scraping :', data.message);
-        }
-    };
-    },
+            if (data.type === 'error') {
+            this.eventSource.close();
+            console.error('Erreur scraping :', data.message);
+            }
+        };
+        },
   }
 };
 </script>
