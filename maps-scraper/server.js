@@ -99,6 +99,14 @@ app.get("/scrape-maps", async (req, res) => {
               return { name, rating, website, emails: null };
             });
 
+            if (companyData.website) {
+              companyData.website = nettoyerUrl(companyData.website);
+            }
+
+            if (companyData.rating && parseFloat(companyData.rating) < 3.5) continue;
+            if (!companyData.rating) continue;
+            
+
             send('company', { company: companyData.name, index: i + 1, total: resultElements.length });
 
             const reseauxSociaux = ['facebook', 'instagram', 'linkedin', 'twitter', 'tiktok', 'youtube', 'pinterest'];
@@ -106,10 +114,9 @@ app.get("/scrape-maps", async (req, res) => {
               companyData.website = null;
             }
 
-            const isDuplicate = cityResults.some(r =>
-              r.name === companyData.name ||
-              (r.website && companyData.website && r.website === companyData.website)
-            );
+            const isDuplicate = 
+              cityResults.some(r => r.name === companyData.name || (r.website && companyData.website && r.website === companyData.website)) ||
+              allCitiesResults.some(cityObj => cityObj.results.some(r => r.name === companyData.name || (r.website && companyData.website && r.website === companyData.website)));
 
             if (!isDuplicate && companyData.website) {
               cityResults.push(companyData);
@@ -198,4 +205,13 @@ function isMailValide(email) {
   if (/%[0-9a-f]{2}/i.test(email)) return false;
   if (/\s/.test(email)) return false;
   return true;
+}
+
+function nettoyerUrl(url) {
+  if (!url) return url;
+  url = url.replace(/\/contact.*/i, '');
+  url = url.replace(/\/nous-contacter.*/i, '');
+  url = url.replace(/\/?\?.*/i, '');
+  url = url.replace(/\/$/, '');
+  return url;
 }
